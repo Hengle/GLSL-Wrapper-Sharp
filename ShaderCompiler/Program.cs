@@ -255,7 +255,10 @@ namespace ShaderCompiler
 				3, 0, GraphicsContextFlags.ForwardCompatible);
 			Window.Visible = false;
 
-			Version GLVersion = new Version(GL.GetString(StringName.Version));
+			int Major = GL.GetInteger(GetPName.MajorVersion);
+			int Minor = GL.GetInteger(GetPName.MinorVersion);
+
+			Version GLVersion = new Version(Major, Minor);
 
 			if(GLVersion < new Version(3, 0))
 			{
