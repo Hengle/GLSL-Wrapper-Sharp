@@ -246,6 +246,20 @@ namespace ShaderCompiler
 			}
 		}
 
+		static Version GetContextVersion()
+		{
+			try
+			{
+				return new Version(GL.GetString(StringName.Version));
+			}
+			catch(FormatException)
+			{
+				int Major = GL.GetInteger(GetPName.MajorVersion);
+				int Minor = GL.GetInteger(GetPName.MinorVersion);
+
+				return new Version(Major, Minor);
+			}
+		}
 		static void CreateContext()
 		{
 			//Window will stay invisible
@@ -255,11 +269,7 @@ namespace ShaderCompiler
 				3, 0, GraphicsContextFlags.ForwardCompatible);
 			Window.Visible = false;
 
-			//Get OpenGL versions
-			int Major = GL.GetInteger(GetPName.MajorVersion);
-			int Minor = GL.GetInteger(GetPName.MinorVersion);
-
-			Version GLVersion = new Version(Major, Minor);
+			Version GLVersion = GetContextVersion();
 
 			if (GLVersion < new Version(3, 0))
 			{
