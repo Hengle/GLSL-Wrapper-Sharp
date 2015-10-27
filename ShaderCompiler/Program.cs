@@ -23,16 +23,16 @@ namespace ShaderCompiler
 			int prev = 0;
 			int i = 0;
 
-			for(i = 0; i < arg.Length; i++)
+			for (i = 0; i < arg.Length; i++)
 			{
-				if(pred(arg[i]))
+				if (pred(arg[i]))
 				{
 					strs.Add(arg.Substring(prev, i - prev));
 					prev = i;
 				}
 			}
 
-			if(prev != i)
+			if (prev != i)
 			{
 				strs.Add(arg.Substring(i));
 			}
@@ -41,7 +41,7 @@ namespace ShaderCompiler
 		}
 		public static string TrimMatchingQuotes(this string arg)
 		{
-			if(arg[0] == '\"' && arg.Last() == '\"')
+			if (arg[0] == '\"' && arg.Last() == '\"')
 			{
 				return arg.Substring(1, arg.Length - 2);
 			}
@@ -145,53 +145,53 @@ namespace ShaderCompiler
 			Info.Namespace = "Shaders";
 			Info.ShaderName = "__Shader" + args.GetHashCode();
 
-			foreach(string arg in args)
+			foreach (string arg in args)
 			{
-				if(arg.StartsWith("-") || arg.StartsWith("/"))
+				if (arg.StartsWith("-") || arg.StartsWith("/"))
 				{
 					string option = arg.Substring(1);
 
-					if(option == "r")
+					if (option == "r")
 					{
 						Info.RecompileFromFile = true;
 					}
-					else if(option == "s")
+					else if (option == "s")
 					{
 						Info.RecompileFromFile = false;
 					}
-					else if(option.StartsWith("out="))
+					else if (option.StartsWith("out="))
 					{
 						Info.OutputFile = option.Substring(4).TrimMatchingQuotes();
 					}
-					else if(option.StartsWith("name="))
+					else if (option.StartsWith("name="))
 					{
 						Info.ShaderName = option.Substring(5).TrimMatchingQuotes();
 					}
-					else if(option.StartsWith("vert="))
+					else if (option.StartsWith("vert="))
 					{
 						Info.Stages.Add(new StageItem(option.Substring(5).TrimMatchingQuotes(), ShaderStage.Vertex, File.ReadAllText(option.Substring(5))));
 					}
-					else if(option.StartsWith("frag="))
+					else if (option.StartsWith("frag="))
 					{
 						Info.Stages.Add(new StageItem(option.Substring(5).TrimMatchingQuotes(), ShaderStage.Fragment, File.ReadAllText(option.Substring(5))));
 					}
-					else if(option.StartsWith("geom="))
+					else if (option.StartsWith("geom="))
 					{
 						Info.Stages.Add(new StageItem(option.Substring(5).TrimMatchingQuotes(), ShaderStage.Geometry, File.ReadAllText(option.Substring(5))));
 					}
-					else if(option.StartsWith("tessEval="))
+					else if (option.StartsWith("tessEval="))
 					{
 						Info.Stages.Add(new StageItem(option.Substring(9).TrimMatchingQuotes(), ShaderStage.TessEval, File.ReadAllText(option.Substring(9))));
 					}
-					else if(option.StartsWith("tessControl="))
+					else if (option.StartsWith("tessControl="))
 					{
 						Info.Stages.Add(new StageItem(option.Substring(12).TrimMatchingQuotes(), ShaderStage.TessControl, File.ReadAllText(option.Substring(12))));
 					}
-					else if(option.StartsWith("compute="))
+					else if (option.StartsWith("compute="))
 					{
 						Info.Stages.Add(new StageItem(option.Substring(8).TrimMatchingQuotes(), ShaderStage.Compute, File.ReadAllText(option.Substring(8))));
 					}
-					else if(option.StartsWith("namespace="))
+					else if (option.StartsWith("namespace="))
 					{
 						Info.Namespace = option.Substring("namespace=".Length).TrimMatchingQuotes();
 					}
@@ -202,7 +202,7 @@ namespace ShaderCompiler
 				}
 				else
 				{
-					if(arg.EndsWith(".vert", true, null))
+					if (arg.EndsWith(".vert", true, null))
 					{
 						Info.Stages.Add(new StageItem(arg, ShaderStage.Vertex, File.ReadAllText(arg)));
 					}
@@ -255,18 +255,24 @@ namespace ShaderCompiler
 				3, 0, GraphicsContextFlags.ForwardCompatible);
 			Window.Visible = false;
 
+			//Get OpenGL versions
 			int Major = GL.GetInteger(GetPName.MajorVersion);
 			int Minor = GL.GetInteger(GetPName.MinorVersion);
 
 			Version GLVersion = new Version(Major, Minor);
 
-			if(GLVersion < new Version(3, 0))
+			if (GLVersion < new Version(3, 0))
 			{
+				//The OpenGL installation is far too old
 				throw new GLVersionException(GLVersion);
 			}
+
+			//Debug info
+			Console.WriteLine("Current OpenGL version is " + GLVersion.ToString() + ".");
 		}
 		static void DestroyContext()
 		{
+			//OpenTK takes care of everything here
 			Window.Dispose();
 		}
 		static UniformType GetUniformType(ActiveUniformType t)
@@ -642,7 +648,7 @@ namespace ShaderCompiler
 				case UniformType.Vector4:
 					return "global::OpenTK." + t.ToString();
 				case UniformType.Texture:
-					return "global::ShaderRuntime.Texture"; 
+					return "global::ShaderRuntime.Texture";
 				default:
 					return "";
 			}
@@ -655,13 +661,13 @@ namespace ShaderCompiler
 
 			return CommandLine.SplitWhere(c =>
 				{
-					if(c == '\\' && !isEscaping)
+					if (c == '\\' && !isEscaping)
 					{
 						isEscaping = true;
 						return false;
 					}
 
-					if(c == '\"' && !isEscaping)
+					if (c == '\"' && !isEscaping)
 					{
 						inQuotes = !inQuotes;
 					}
@@ -673,105 +679,119 @@ namespace ShaderCompiler
 				.Select(arg => arg.Trim().TrimMatchingQuotes().Replace("\\\"", "\""))
 				.Where(arg => !string.IsNullOrEmpty(arg))
 				.ToArray();
-				
+
 		}
 
 		bool TestCompile()
 		{
-				int ShaderID = 0;
+			int ShaderID = 0;
 
-				List<int> Stages = new List<int>();
+			//For stage ids
+			List<int> Stages = new List<int>();
 
-				ShaderID = GL.CreateProgram();
+			ShaderID = GL.CreateProgram();
 
-				bool IsCompute = false;
-				bool Failed = false;
+			bool IsCompute = false;
+			bool Failed = false;
 
-				foreach (StageItem stage in Info.Stages)
+			foreach (StageItem stage in Info.Stages)
+			{
+				//Check whether the current stage is a compute shader
+				IsCompute = IsCompute || stage.Item2 == ShaderStage.Compute;
+
+				//Compute shaders aren't allowed to be compiled with other shader types
+				if (IsCompute && stage.Item2 != ShaderStage.Compute)
 				{
-					IsCompute = IsCompute || stage.Item2 == ShaderStage.Compute;
-
-					if (IsCompute && stage.Item2 != ShaderStage.Compute)
-					{
-						Console.WriteLine("Error: Compute shaders cannot be compiled with other shader types.");
-						return false;
-					}
-
-					int id = GL.CreateShader((ShaderType)stage.Item2);
-
-					GL.ShaderSource(id, stage.Item3);
-					GL.CompileShader(id);
-					GL.AttachShader(ShaderID, id);
-
-					int CompileStatus = 0;
-					
-					GL.GetShader(id, ShaderParameter.CompileStatus, out CompileStatus);
-
-					if(CompileStatus == 0)
-					{
-						Console.WriteLine("Shader Failed to compile. Info log: \n" + Regex.Replace(GL.GetShaderInfoLog(id), "0\\(", stage.Item1 +"("));
-						Failed = true;
-					}
-
-					Stages.Add(id);
-				}
-
-				GL.LinkProgram(ShaderID);
-
-				foreach (int shader in Stages)
-				{
-					GL.DetachShader(ShaderID, shader);
-					GL.DeleteShader(shader);
-				}
-
-				int LinkStatus;
-				GL.GetProgram(ShaderID, GetProgramParameterName.LinkStatus, out LinkStatus);
-				string InfoLog = GL.GetProgramInfoLog(ShaderID);
-
-				if(Failed)
-				{
-					Console.WriteLine("Shader failed to compile. Exiting.");
-					return false;
-				}
-				if (LinkStatus == 0)
-				{
-					Console.WriteLine("Shader failed to link. Info log: \n" + InfoLog);
+					//Error and exit
+					Console.WriteLine("Error: Compute shaders cannot be compiled with other shader types.");
 					return false;
 				}
 
-				int Count = 0;
+				//Create the shader stage and compile it
+				int id = GL.CreateShader((ShaderType)stage.Item2);
 
-				GL.GetProgram(ShaderID, GetProgramParameterName.ActiveAttributes, out Count);
+				GL.ShaderSource(id, stage.Item3);
+				GL.CompileShader(id);
+				GL.AttachShader(ShaderID, id);
 
-				for (int i = 0; i < Count; i++)
+				int CompileStatus = 0;
+
+				GL.GetShader(id, ShaderParameter.CompileStatus, out CompileStatus);
+
+				//Check for errors
+				if (CompileStatus == 0)
 				{
-					int size;
-					int length;
-					ActiveAttribType type;
-					StringBuilder name = new StringBuilder(512);
-
-					GL.GetActiveAttrib(ShaderID, i, 512, out length, out size, out type, name);
-
-					Attributes.Add(new Tuple<ActiveAttribType, string>(type, name.ToString()));
+					Console.WriteLine("Shader Failed to compile. Info log: \n" + Regex.Replace(GL.GetShaderInfoLog(id), "0\\(", stage.Item1 + "("));
+					Failed = true;
 				}
 
-				GL.GetProgram(ShaderID, GetProgramParameterName.ActiveUniforms, out Count);
+				Stages.Add(id);
+			}
 
-				for (int i = 0; i < Count; i++)
-				{
-					int size;
-					int length;
-					ActiveUniformType type;
-					StringBuilder name = new StringBuilder(512);
+			GL.LinkProgram(ShaderID);
 
-					GL.GetActiveUniform(ShaderID, i, 512, out length, out size, out type, name);
+			//Delete and destroy all shader stages
+			foreach (int shader in Stages)
+			{
+				GL.DetachShader(ShaderID, shader);
+				GL.DeleteShader(shader);
+			}
 
-					Uniforms.Add(new Tuple<ActiveUniformType, string>(type, name.ToString()));
-				}
+			//Check if a shader stage compilation failed
+			if (Failed)
+			{
+				Console.WriteLine("Shader failed to compile. Exiting.");
+				return false;
+			}
 
-				GL.DeleteProgram(ShaderID);
+			//Check for link errors
+			int LinkStatus;
+			GL.GetProgram(ShaderID, GetProgramParameterName.LinkStatus, out LinkStatus);
+			string InfoLog = GL.GetProgramInfoLog(ShaderID);
 
-				return true;
+			//See whether linking failed
+			if (LinkStatus == 0)
+			{
+				Console.WriteLine("Shader failed to link. Info log: \n" + InfoLog);
+				return false;
+			}
+
+			int Count = 0;
+
+			GL.GetProgram(ShaderID, GetProgramParameterName.ActiveAttributes, out Count);
+
+			//Get all attributes
+			for (int i = 0; i < Count; i++)
+			{
+				int size;
+				int length;
+				ActiveAttribType type;
+				StringBuilder name = new StringBuilder(512);
+
+				GL.GetActiveAttrib(ShaderID, i, 512, out length, out size, out type, name);
+
+				Attributes.Add(new Tuple<ActiveAttribType, string>(type, name.ToString()));
+			}
+
+			GL.GetProgram(ShaderID, GetProgramParameterName.ActiveUniforms, out Count);
+
+			//Get all uniforms
+			for (int i = 0; i < Count; i++)
+			{
+				int size;
+				int length;
+				ActiveUniformType type;
+				StringBuilder name = new StringBuilder(512);
+
+				GL.GetActiveUniform(ShaderID, i, 512, out length, out size, out type, name);
+
+				Uniforms.Add(new Tuple<ActiveUniformType, string>(type, name.ToString()));
+			}
+
+			//Get rid of the program
+			GL.DeleteProgram(ShaderID);
+
+			return true;
 		}
 		void WriteToFile()
 		{
@@ -780,9 +800,9 @@ namespace ShaderCompiler
 			List<string> InitCommands = new List<string>();
 			List<string> DrawCommands = new List<string>();
 
-			foreach(UniformItem item in Uniforms)
+			foreach (UniformItem item in Uniforms)
 			{
-				if(GetUniformType(item.Item1) == UniformType.Texture)
+				if (GetUniformType(item.Item1) == UniformType.Texture)
 				{
 					InitCommands.Add("GL.ActiveTexture(global::OpenTK.Graphics.OpenGL.TextureUnit.Texture" + Counter + ");");
 					InitCommands.Add("GL.BindTexture(uniform_" + item.Item2 + ".Target, uniform_" + item.Item2 + ".TextureID);");
@@ -803,6 +823,7 @@ namespace ShaderCompiler
 			 *		- Shader source : [stage]Source
 			 */
 
+			//Standard warning
 			Lines.Add("// <auto-generated>");
 			Lines.Add("//\tThis code was generated by a Tool.");
 			Lines.Add("//");
@@ -816,6 +837,7 @@ namespace ShaderCompiler
 			Lines.Add("using GL = global::OpenTK.Graphics.OpenGL.GL;");
 			#endregion
 
+			//Namespace and class start
 			Lines.Add("");
 			Lines.Add("#pragma warning disable 168");
 			Lines.Add("");
@@ -857,16 +879,16 @@ namespace ShaderCompiler
 			}
 
 			#region UpdateShaderCode
-			if(Info.RecompileFromFile)
+			if (Info.RecompileFromFile)
 			{
 				Lines.Add("\t\tprivate static void LoadShaders()");
 				Lines.Add("\t\t{");
 				foreach (StageItem stage in Info.Stages)
 				{
 					Lines.Add("\t\t\t" + stage.Item2.ToString() + "Source = global::System.IO.File.ReadAllText(@\"" + stage.Item1 + "\");");
-				}		
+				}
 				Lines.Add("\t\t}");
-			}	
+			}
 			#endregion
 
 			Lines.Add("\t\tpublic static void CompileShader()");
@@ -876,8 +898,8 @@ namespace ShaderCompiler
 				Lines.Add("\t\t\tLoadShaders();");
 			}
 			Lines.Add("\t\t\tProgramID = GL.CreateProgram();");
-			
-			foreach(StageItem stage in Info.Stages)
+
+			foreach (StageItem stage in Info.Stages)
 			{
 				Lines.Add("\t\t\tint " + stage.Item2.ToString() + " = GL.CreateShader(global::OpenTK.Graphics.OpenGL.ShaderType." + ((ShaderType)stage.Item2).ToString() + ");");
 				Lines.Add("\t\t\tGL.ShaderSource(" + stage.Item2.ToString() + ", " + stage.Item2.ToString() + "Source);");
@@ -888,7 +910,7 @@ namespace ShaderCompiler
 
 			Lines.Add("\t\t\tglobal::System.Diagnostics.Debug.WriteLine(GL.GetProgramInfoLog(ProgramID));");
 
-			foreach(StageItem stage in Info.Stages)
+			foreach (StageItem stage in Info.Stages)
 			{
 				Lines.Add("\t\t\tGL.DetachShader(ProgramID, " + stage.Item2.ToString() + ");");
 				Lines.Add("\t\t\tGL.DeleteShader(" + stage.Item2.ToString() + ");");
@@ -975,13 +997,13 @@ namespace ShaderCompiler
 			Lines.Add("\t\t\tswitch(name)");
 			Lines.Add("\t\t\t{");
 
-			foreach(Tuple<ActiveUniformType, string> uniform in Uniforms)
+			foreach (Tuple<ActiveUniformType, string> uniform in Uniforms)
 			{
 				Lines.Add("\t\t\t\tcase \"" + uniform.Item2 + "\":");
 				Lines.Add("\t\t\t\t\treturn __" + uniform.Item2 + ";");
 			}
 
-			foreach(Tuple<ActiveAttribType, string> attrib in Attributes)
+			foreach (Tuple<ActiveAttribType, string> attrib in Attributes)
 			{
 				Lines.Add("\t\t\t\tcase \"" + attrib.Item2 + "\":");
 				Lines.Add("\t\t\t\t\treturn __" + attrib.Item2 + ";");
@@ -1046,16 +1068,18 @@ namespace ShaderCompiler
 			#region GetUniformNames
 			Lines.Add("\t\tpublic global::System.Collections.Generic.IEnumerable<string> GetUniformNames()");
 			Lines.Add("\t\t{");
-			foreach(UniformItem uniform in Uniforms)
+			foreach (UniformItem uniform in Uniforms)
 			{
 				Lines.Add("\t\t\tyield return \"" + uniform.Item2 + "\";");
 			}
 			Lines.Add("\t\t}");
 			#endregion
 
+			//End class and namespace scope
 			Lines.Add("\t}");
 			Lines.Add("}");
 
+			//Write to the output file
 			File.WriteAllLines(Info.OutputFile, Lines);
 		}
 
@@ -1070,7 +1094,7 @@ namespace ShaderCompiler
 				Console.WriteLine("No arguments passed.");
 				return -1;
 			}
-			else if(args[0] == "/help" || args[0] == "-help")
+			else if (args[0] == "/help" || args[0] == "-help")
 			{
 				Console.WriteLine("Arguments: (May be prefixed with - or /)"
 					 + "\n  - multicompile : Must be the first argument. Treats all the following arguments as arguments to a sperate compiler instance surrounded by quotes"
@@ -1117,7 +1141,7 @@ namespace ShaderCompiler
 
 			CreateContext();
 
-			for(int i = 0; i < args.Length; i++)
+			for (int i = 0; i < args.Length; i++)
 			{
 				Compilers[i] = new Program();
 				Compilers[i].ParseArgs(SplitCommandLine(args[i].Substring(1, args[i].Length - 2)));
@@ -1126,9 +1150,9 @@ namespace ShaderCompiler
 
 			DestroyContext();
 
-			for(int i = 0; i < args.Length; i++)
+			for (int i = 0; i < args.Length; i++)
 			{
-				if(Statuses[i])
+				if (Statuses[i])
 					Compilers[i].WriteToFile();
 			}
 		}
@@ -1170,7 +1194,7 @@ namespace ShaderCompiler
 					return Compile(args);
 				}
 			}
-			catch(GLVersionException e)
+			catch (GLVersionException e)
 			{
 				Console.WriteLine("OpenGL version is not high enough. Expected OpenGL version 3.0 or greater, got version " + e.Version + ".");
 				return 0;
