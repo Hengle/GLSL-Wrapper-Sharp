@@ -266,12 +266,12 @@ namespace ShaderCompiler
 			Window = new GameWindow(
 				1080, 720, GraphicsMode.Default, "Gas Giant Test",
 				GameWindowFlags.Default, DisplayDevice.Default,
-				3, 0, GraphicsContextFlags.ForwardCompatible);
+				3, 3, GraphicsContextFlags.ForwardCompatible);
 			Window.Visible = false;
 
 			Version GLVersion = GetContextVersion();
 
-			if (GLVersion < new Version(3, 0))
+			if (GLVersion < new Version(3, 3))
 			{
 				//The OpenGL installation is far too old
 				throw new GLVersionException(GLVersion);
