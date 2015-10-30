@@ -53,8 +53,9 @@ namespace ShaderCompiler
 	public class GLVersionException : Exception
 	{
 		public Version Version;
+		public Version Expected;
 
-		public GLVersionException(Version v) { this.Version = v; }
+		public GLVersionException(Version v, Version e) { this.Version = v; this.Expected = e; }
 		public GLVersionException(string message) : base(message) { }
 		public GLVersionException(string message, Exception inner) : base(message, inner) { }
 		protected GLVersionException(
@@ -85,6 +86,7 @@ namespace ShaderCompiler
 		 *	- tessEval=[filename] : Compiles the file as a tesselation evaluation shader
 		 *	- tessControl=[filename] : Compiles the file as a tesseleation control shader
 		 *	- compute=[filename] : Compiles the file as a compute shader (This option cannot be specified with any of the other file types)
+		 *	- contextVersion=[version] : Sets the value for the context version
 		 */
 
 		struct ArgInfo
@@ -100,6 +102,7 @@ namespace ShaderCompiler
 			public string OutputFile;
 			public string ShaderName;
 			public string Namespace;
+			public Version ContextVersion;
 
 			public List<StageItem> Stages;
 		}
@@ -144,104 +147,128 @@ namespace ShaderCompiler
 			Info.Stages = new List<StageItem>();
 			Info.Namespace = "Shaders";
 			Info.ShaderName = "__Shader" + args.GetHashCode();
+			Info.ContextVersion = new Version(3, 0);
 
 			foreach (string arg in args)
 			{
-				if (arg.StartsWith("-") || arg.StartsWith("/"))
+				try
 				{
-					string option = arg.Substring(1);
+					if (arg.StartsWith("-") || arg.StartsWith("/"))
+					{
+						string option = arg.Substring(1);
 
-					if (option == "r")
-					{
-						Info.RecompileFromFile = true;
-					}
-					else if (option == "s")
-					{
-						Info.RecompileFromFile = false;
-					}
-					else if (option.StartsWith("out="))
-					{
-						Info.OutputFile = option.Substring(4).TrimMatchingQuotes();
-					}
-					else if (option.StartsWith("name="))
-					{
-						Info.ShaderName = option.Substring(5).TrimMatchingQuotes();
-					}
-					else if (option.StartsWith("vert="))
-					{
-						Info.Stages.Add(new StageItem(option.Substring(5).TrimMatchingQuotes(), ShaderStage.Vertex, File.ReadAllText(option.Substring(5))));
-					}
-					else if (option.StartsWith("frag="))
-					{
-						Info.Stages.Add(new StageItem(option.Substring(5).TrimMatchingQuotes(), ShaderStage.Fragment, File.ReadAllText(option.Substring(5))));
-					}
-					else if (option.StartsWith("geom="))
-					{
-						Info.Stages.Add(new StageItem(option.Substring(5).TrimMatchingQuotes(), ShaderStage.Geometry, File.ReadAllText(option.Substring(5))));
-					}
-					else if (option.StartsWith("tessEval="))
-					{
-						Info.Stages.Add(new StageItem(option.Substring(9).TrimMatchingQuotes(), ShaderStage.TessEval, File.ReadAllText(option.Substring(9))));
-					}
-					else if (option.StartsWith("tessControl="))
-					{
-						Info.Stages.Add(new StageItem(option.Substring(12).TrimMatchingQuotes(), ShaderStage.TessControl, File.ReadAllText(option.Substring(12))));
-					}
-					else if (option.StartsWith("compute="))
-					{
-						Info.Stages.Add(new StageItem(option.Substring(8).TrimMatchingQuotes(), ShaderStage.Compute, File.ReadAllText(option.Substring(8))));
-					}
-					else if (option.StartsWith("namespace="))
-					{
-						Info.Namespace = option.Substring("namespace=".Length).TrimMatchingQuotes();
+						if (option == "r")
+						{
+							Info.RecompileFromFile = true;
+						}
+						else if (option == "s")
+						{
+							Info.RecompileFromFile = false;
+						}
+						else if (option.StartsWith("out="))
+						{
+							Info.OutputFile = option.Substring(4).TrimMatchingQuotes();
+						}
+						else if (option.StartsWith("name="))
+						{
+							Info.ShaderName = option.Substring(5).TrimMatchingQuotes();
+						}
+						else if (option.StartsWith("vert="))
+						{
+							Info.Stages.Add(new StageItem(option.Substring(5).TrimMatchingQuotes(), ShaderStage.Vertex, File.ReadAllText(option.Substring(5))));
+						}
+						else if (option.StartsWith("frag="))
+						{
+							Info.Stages.Add(new StageItem(option.Substring(5).TrimMatchingQuotes(), ShaderStage.Fragment, File.ReadAllText(option.Substring(5))));
+						}
+						else if (option.StartsWith("geom="))
+						{
+							Info.Stages.Add(new StageItem(option.Substring(5).TrimMatchingQuotes(), ShaderStage.Geometry, File.ReadAllText(option.Substring(5))));
+						}
+						else if (option.StartsWith("tessEval="))
+						{
+							Info.Stages.Add(new StageItem(option.Substring(9).TrimMatchingQuotes(), ShaderStage.TessEval, File.ReadAllText(option.Substring(9))));
+						}
+						else if (option.StartsWith("tessControl="))
+						{
+							Info.Stages.Add(new StageItem(option.Substring(12).TrimMatchingQuotes(), ShaderStage.TessControl, File.ReadAllText(option.Substring(12))));
+						}
+						else if (option.StartsWith("compute="))
+						{
+							Info.Stages.Add(new StageItem(option.Substring(8).TrimMatchingQuotes(), ShaderStage.Compute, File.ReadAllText(option.Substring(8))));
+						}
+						else if (option.StartsWith("namespace="))
+						{
+							Info.Namespace = option.Substring("namespace=".Length).TrimMatchingQuotes();
+						}
+						else if (option.StartsWith("contextVersion="))
+						{
+							Info.ContextVersion = new Version(option.Substring("contextVersion=".Length).TrimMatchingQuotes());
+						}
+						else
+						{
+							Console.WriteLine("Unknown argument: '" + arg + "'");
+						}
 					}
 					else
 					{
-						Console.WriteLine("Unknown argument: '" + arg + "'");
+						if (arg.EndsWith(".vert", true, null))
+						{
+							Info.Stages.Add(new StageItem(arg, ShaderStage.Vertex, File.ReadAllText(arg)));
+						}
+						else if (arg.EndsWith(".frag", true, null))
+						{
+							Info.Stages.Add(new StageItem(arg, ShaderStage.Fragment, File.ReadAllText(arg)));
+						}
+						else if (arg.EndsWith(".geom", true, null))
+						{
+							Info.Stages.Add(new StageItem(arg, ShaderStage.Geometry, File.ReadAllText(arg)));
+						}
+						else if (arg.EndsWith(".tessEval", true, null))
+						{
+							Info.Stages.Add(new StageItem(arg, ShaderStage.TessEval, File.ReadAllText(arg)));
+						}
+						else if (arg.EndsWith(".tessControl", true, null))
+						{
+							Info.Stages.Add(new StageItem(arg, ShaderStage.TessControl, File.ReadAllText(arg)));
+						}
+						else if (arg.EndsWith(".compute", true, null))
+						{
+							Info.Stages.Add(new StageItem(arg, ShaderStage.Compute, File.ReadAllText(arg)));
+						}
+						else if (arg.EndsWith(".vs", true, null))
+						{
+							Info.Stages.Add(new StageItem(arg, ShaderStage.Vertex, File.ReadAllText(arg)));
+						}
+						else if (arg.EndsWith(".fs", true, null))
+						{
+							Info.Stages.Add(new StageItem(arg, ShaderStage.Fragment, File.ReadAllText(arg)));
+						}
+						else if (arg.EndsWith(".gs", true, null))
+						{
+							Info.Stages.Add(new StageItem(arg, ShaderStage.Geometry, File.ReadAllText(arg)));
+						}
+						else
+						{
+							Console.WriteLine("Unable to determine stage of file: '" + arg + "' argument will be ignored.");
+						}
 					}
 				}
-				else
+				catch (FormatException)
 				{
-					if (arg.EndsWith(".vert", true, null))
-					{
-						Info.Stages.Add(new StageItem(arg, ShaderStage.Vertex, File.ReadAllText(arg)));
-					}
-					else if (arg.EndsWith(".frag", true, null))
-					{
-						Info.Stages.Add(new StageItem(arg, ShaderStage.Fragment, File.ReadAllText(arg)));
-					}
-					else if (arg.EndsWith(".geom", true, null))
-					{
-						Info.Stages.Add(new StageItem(arg, ShaderStage.Geometry, File.ReadAllText(arg)));
-					}
-					else if (arg.EndsWith(".tessEval", true, null))
-					{
-						Info.Stages.Add(new StageItem(arg, ShaderStage.TessEval, File.ReadAllText(arg)));
-					}
-					else if (arg.EndsWith(".tessControl", true, null))
-					{
-						Info.Stages.Add(new StageItem(arg, ShaderStage.TessControl, File.ReadAllText(arg)));
-					}
-					else if (arg.EndsWith(".compute", true, null))
-					{
-						Info.Stages.Add(new StageItem(arg, ShaderStage.Compute, File.ReadAllText(arg)));
-					}
-					else if (arg.EndsWith(".vs", true, null))
-					{
-						Info.Stages.Add(new StageItem(arg, ShaderStage.Vertex, File.ReadAllText(arg)));
-					}
-					else if (arg.EndsWith(".fs", true, null))
-					{
-						Info.Stages.Add(new StageItem(arg, ShaderStage.Fragment, File.ReadAllText(arg)));
-					}
-					else if (arg.EndsWith(".gs", true, null))
-					{
-						Info.Stages.Add(new StageItem(arg, ShaderStage.Geometry, File.ReadAllText(arg)));
-					}
-					else
-					{
-						Console.WriteLine("Unable to determine stage of file: '" + arg + "' argument will be ignored.");
-					}
+					Console.WriteLine("Invalid argument.");
+				}
+				catch (OverflowException)
+				{
+					Console.WriteLine("Invalid argument.");
+				}
+				catch(ArgumentOutOfRangeException)
+				{
+					Console.WriteLine("Invalid argument.");
+				}
+				catch (FileNotFoundException exec)
+				{
+					Console.WriteLine("Error: File \"" + exec.FileName + "\" was not found.");
 				}
 			}
 		}
@@ -260,25 +287,28 @@ namespace ShaderCompiler
 				return new Version(Major, Minor);
 			}
 		}
-		static void CreateContext()
+		static void CreateContext(Version Expected)
 		{
+			//Minimum version is 3.0
+			if (Expected < new Version(3, 0))
+				Expected = new Version(3, 0);
+
 			//Window will stay invisible
 			Window = new GameWindow(
 				1080, 720, GraphicsMode.Default, "Gas Giant Test",
 				GameWindowFlags.Default, DisplayDevice.Default,
-				3, 3, GraphicsContextFlags.ForwardCompatible);
+				Expected.Major, Expected.Minor, GraphicsContextFlags.ForwardCompatible);
 			Window.Visible = false;
 
 			Version GLVersion = GetContextVersion();
 
-			if (GLVersion < new Version(3, 3))
+			Console.WriteLine("Attempted to create context with version " + Expected.ToString() + ". Got version " + GLVersion.ToString() + ".");
+
+			if (GLVersion < Expected)
 			{
 				//The OpenGL installation is far too old
-				throw new GLVersionException(GLVersion);
+				throw new GLVersionException(GLVersion, Expected);
 			}
-
-			//Debug info
-			Console.WriteLine("Current OpenGL version is " + GLVersion.ToString() + ".");
 		}
 		static void DestroyContext()
 		{
@@ -1107,7 +1137,6 @@ namespace ShaderCompiler
 			else if (args[0] == "/help" || args[0] == "-help")
 			{
 				Console.WriteLine("Arguments: (May be prefixed with - or /)"
-					 + "\n  - multicompile : Must be the first argument. Treats all the following arguments as arguments to a sperate compiler instance surrounded by quotes"
 					 + "\n  - r : Reloads the shader from files in the current directory whenever the shader is compiled"
 					 + "\n  - s : Embeds the shader as strings in the output file (this is the default)"
 					 + "\n  - out=[filename] : Sets the output file (The default is to use the first input file's name)"
@@ -1125,7 +1154,7 @@ namespace ShaderCompiler
 
 			Program p = new Program();
 			p.ParseArgs(args);
-			CreateContext();
+			CreateContext(p.Info.ContextVersion);
 			try
 			{
 				if (p.TestCompile())
@@ -1138,32 +1167,6 @@ namespace ShaderCompiler
 			finally
 			{
 				DestroyContext();
-			}
-		}
-		/// <summary>
-		/// Called when /multicompile is specified
-		/// </summary>
-		/// <param name="args"></param>
-		static void MultiCompile(string[] args)
-		{
-			Program[] Compilers = new Program[args.Length];
-			bool[] Statuses = new bool[args.Length];
-
-			CreateContext();
-
-			for (int i = 0; i < args.Length; i++)
-			{
-				Compilers[i] = new Program();
-				Compilers[i].ParseArgs(SplitCommandLine(args[i].Substring(1, args[i].Length - 2)));
-				Statuses[i] = Compilers[i].TestCompile();
-			}
-
-			DestroyContext();
-
-			for (int i = 0; i < args.Length; i++)
-			{
-				if (Statuses[i])
-					Compilers[i].WriteToFile();
 			}
 		}
 
@@ -1179,7 +1182,6 @@ namespace ShaderCompiler
 				else if (args[0] == "/help" || args[0] == "-help")
 				{
 					Console.WriteLine("Arguments: (May be prefixed with - or /)"
-						 + "\n  - multicompile : Must be the first argument. Treats all the following arguments as arguments to a sperate compiler instance surrounded by quotes"
 						 + "\n  - r : Reloads the shader from files in the current directory whenever the shader is compiled"
 						 + "\n  - s : Embeds the shader as strings in the output file (this is the default)"
 						 + "\n  - out=[filename] : Sets the output file (The default is to use the first input file's name)"
@@ -1191,12 +1193,8 @@ namespace ShaderCompiler
 						 + "\n  - tessEval=[filename] : Compiles the file as a tesselation evaluation shader"
 						 + "\n  - tessControl=[filename] : Compiles the file as a tesselation control shader"
 						 + "\n  - compute=[filename] : Compiles the file as a compute shader (This option cannot be specified with any of the other file types)"
-						 + "\n  - namespace=[string] : Sets the namespace of the shader (The default is 'Shaders')");
-					return 0;
-				}
-				else if (args[0] == "/multicompile" || args[0] == "-multicompile")
-				{
-					MultiCompile(args.Where((arg, i) => i != 0).ToArray());
+						 + "\n  - namespace=[string] : Sets the namespace of the shader (The default is 'Shaders')"
+						 + "\n  - contextVersion=[version] : Set the OpenGL context version. The minimum and default versions are 3.0.");
 					return 0;
 				}
 				else
@@ -1206,7 +1204,7 @@ namespace ShaderCompiler
 			}
 			catch (GLVersionException e)
 			{
-				Console.WriteLine("OpenGL version is not high enough. Expected OpenGL version 3.0 or greater, got version " + e.Version + ".");
+				Console.WriteLine("OpenGL version is not high enough. Expected OpenGL version " + e.Expected + " or greater, got version " + e.Version + ".");
 				return 0;
 			}
 		}
