@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 
 namespace ShaderRuntime
 {
+	//Disable warnings for exceptions that don't need comments
+#pragma warning disable 1591
     [Serializable]
     public class InvalidParameterTypeException : Exception
     {

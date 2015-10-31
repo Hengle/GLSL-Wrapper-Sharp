@@ -22,7 +22,13 @@ namespace ShaderRuntime
 	/// </example>
 	public class DynamicShaderObject : DynamicObject
 	{
+		/// <summary>
+		/// The current shader that this DynamicShaderObject is referencing.
+		/// </summary>
 		public GLShader Shader;
+
+		/* Implements DynamicObject */
+#pragma warning disable 1591
 
 		public override bool TryGetMember(GetMemberBinder binder, out object result)
 		{

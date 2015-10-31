@@ -32,6 +32,9 @@ namespace ShaderRuntime
             Target = Tgt;
         }
 
+		/// <summary>
+		/// Creates the texture with an id of 0 and the default texture target.
+		/// </summary>
 		public Texture()
 		{
 			TextureID = default(int);

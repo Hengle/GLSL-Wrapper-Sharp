@@ -8,6 +8,9 @@ using System.Threading.Tasks;
 
 namespace ShaderRuntime
 {
+	/// <summary>
+	/// A utility class for extension methods.
+	/// </summary>
 	public static class ShaderExtensions
 	{
 		/// <summary>
